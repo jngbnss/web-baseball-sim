@@ -97,7 +97,7 @@ export class Game {
     opts: GameOptions,
   ) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -126,7 +126,7 @@ export class Game {
     this.scene.add(this.pitchMarker);
     if (opts.debug) this.batter.bat.collider.visible = true;
 
-    this.ballCam = new BallCamera(this.ball);
+    this.ballCam = new BallCamera({ position: this.ball.mesh.position, velocity: this.ball.velocity });
     this.director = new CameraDirector(this.camera, this.battingCam);
 
     this.hud = new HUD(document.body);
@@ -165,6 +165,7 @@ export class Game {
   }
 
   start(): void {
+    this.precompile();
     this.loop.start();
   }
 
@@ -442,12 +443,14 @@ export class Game {
     this.perf.countPhysicsSteps(steps);
     if (this.loop.timeScale < 1 && performance.now() >= this.hitStopUntil) this.loop.timeScale = 1;
 
-    const t = this.state.elapsed(this.simTime);
+    // Interpolated sim time for smooth animation between 120 Hz steps.
+    const renderTime = this.simTime - (1 - alpha) * CONFIG.physics.fixedDt;
+    const t = this.state.elapsed(renderTime);
     if (this.state.is(Phase.PITCHING)) this.pitcher.pose(t / CONFIG.pitcher.windupTime, 0);
-    else if (this.play.releaseTime > 0) this.pitcher.pose(1, (this.simTime - this.play.releaseTime) / 0.5);
+    else if (this.play.releaseTime > 0) this.pitcher.pose(1, (renderTime - this.play.releaseTime) / 0.5);
 
     this.ball.render(alpha, realDt * this.loop.timeScale);
-    this.batter.render();
+    this.batter.render(renderTime);
     this.catcher.update(realDt);
     this.director.update(realDt);
 
@@ -455,7 +458,20 @@ export class Game {
     this.renderer.render(this.scene, this.camera);
     this.perf.end('render');
     this.perf.sampleRenderer(this.renderer);
-    this.hud.updatePerf(this.perf.snapshot());
+    if (this.hud.perfDue()) this.hud.updatePerf(this.perf.snapshot());
+  }
+
+  /** Compile every shader up front so the first pitch / contact doesn't hitch. */
+  private precompile(): void {
+    const hidden: THREE.Object3D[] = [];
+    this.scene.traverse((o) => {
+      if (!o.visible) {
+        hidden.push(o);
+        o.visible = true;
+      }
+    });
+    this.renderer.compile(this.scene, this.camera);
+    for (const o of hidden) o.visible = false;
   }
 
   private resize(): void {

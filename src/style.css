@@ -1,7 +1,7 @@
 :root {
   --fg: #f5f7fa;
   --muted: #a9b4c2;
-  --panel: rgba(10, 16, 26, 0.62);
+  --panel: rgba(10, 16, 26, 0.72);
   --accent: #ffd34d;
   --good: #57d68d;
   --great: #ffd34d;
@@ -34,7 +34,6 @@ html, body {
   background: var(--panel);
   border-radius: 10px;
   padding: 10px 14px;
-  backdrop-filter: blur(4px);
 }
 .top-left { top: 16px; left: 16px; }
 .top-right { top: 16px; right: 16px; min-width: 220px; }

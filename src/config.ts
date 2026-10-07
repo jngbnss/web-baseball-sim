@@ -126,8 +126,8 @@ export const CONFIG = {
   },
 
   feel: {
-    hitStopPerfect: 0.09,
-    hitStopGood: 0.04,
+    hitStopPerfect: 0.06,
+    hitStopGood: 0,
     hitStopTimeScale: 0.08,
     shakeOnContact: 0.12,
   },

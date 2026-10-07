@@ -151,8 +151,12 @@ export class HUD {
     this.muted.hidden = !m;
   }
 
+  /** Perf panel refreshes at 4 Hz; check first so the snapshot isn't built every frame. */
+  perfDue(now = performance.now()): boolean {
+    return now - this.lastPerf >= 250;
+  }
+
   updatePerf(s: PerfSnapshot, now = performance.now()): void {
-    if (now - this.lastPerf < 250) return;
     this.lastPerf = now;
     const sec = s.sections;
     const f = (n: number | undefined) => (n === undefined ? '-' : n.toFixed(2));
